@@ -2,34 +2,35 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-# Copy Maven wrapper & pom first (better layer caching)
-COPY mvnw .
-COPY .mvn .mvn
+# Copiar configuración del proyecto
 COPY pom.xml .
 
-# Download dependencies (cached unless pom changes)
-RUN ./mvnw dependency:go-offline -B
+# Descargar dependencias (para mejor aprovechamiento de la caché)
+RUN mvn dependency:go-offline -B || true
 
-# Copy source and build
+# Copiar código fuente y compilar
 COPY src src
-RUN ./mvnw package -DskipTests -B
+RUN mvn clean package -DskipTests -B
 
 # ---- Runtime stage ----
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:21-jre-alpine
 
-# Security: run as non-root user
-RUN groupadd -r spring && useradd -r -g spring spring
+# Instalar utilidades necesarias para la verificación de salud y gestión de usuarios en Alpine
+RUN apk add --no-꾀check --no-cache curl shadow && \
+    groupadd -r spring && \
+    useradd -r -g spring spring
+
 USER spring:spring
 
 WORKDIR /app
 
-# Copy only the fat jar
+# Copiar solo el JAR empaquetado
 COPY --from=builder /app/target/*.jar app.jar
 
-# Optional: expose actuator / app port
+# Puerto expuesto
 EXPOSE 8080
 
-# Health check (adjust path if needed)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
