@@ -33,7 +33,7 @@ jobs:
         run: docker build -t spring-boot-webapi:latest .
 
       - name: 6. Escaneo de Imagen - Trivy Action
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: 'spring-boot-webapi:latest'
           format: 'json'
