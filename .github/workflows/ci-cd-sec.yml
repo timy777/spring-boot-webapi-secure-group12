@@ -2,7 +2,7 @@ name: CI/CD - Spring Boot DevSecOps
 
 on:
   push:
-    branches: [ main, develop, feature/**, bugfix/**, hotfix/** ]
+    branches: [ develop, feature/**, bugfix/**, hotfix/** ]
   pull_request:
     branches: [ main, develop ]
   # Optional: also trigger on version tags
