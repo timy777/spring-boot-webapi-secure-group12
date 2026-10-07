@@ -3,6 +3,8 @@ name: DevSecOps Pipeline
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build-and-security:
@@ -13,32 +15,30 @@ jobs:
       - name: 1. Checkout del código
         uses: actions/checkout@v4
 
-      - name: 2. Setup de Java (Actualizado)
-        uses: actions/setup-java@v5 # Actualizado a v5 para eliminar el warning
+      - name: 2. Setup de Java
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
 
       - name: 3. Compilación (CI)
-        # Agregamos -DskipTests para evitar que el pipeline falle por pruebas unitarias rotas
         run: mvn clean package -DskipTests
 
       - name: 4. SAST - Escaneo con Semgrep mediante Docker
-        # Usamos la imagen oficial de Semgrep para evitar errores de PIP en Ubuntu
         run: |
-          docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan --config auto --json --output /src/semgrep-report.json || true
+          docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan --config auto --json --output semgrep-report.json || true
 
       - name: 5. Construir Imagen Docker del Proyecto
         run: docker build -t spring-boot-webapi:latest .
 
       - name: 6. Escaneo de Imagen - Trivy Action
-        uses: aquasecurity/trivy-action@master # Versión corregida
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'spring-boot-webapi:latest'
           format: 'json'
           output: 'trivy-report.json'
-          exit-code: '0' # Evita que Trivy rompa el pipeline si encuentra vulnerabilidades
+          exit-code: '0'
 
       - name: 7. Publicar Reportes (Artifacts)
         if: always()
